@@ -14,3 +14,18 @@
 # Subtract the mean face m from each training face, ->Ri = Ri - m
 # Put all training faces into a single matrix A (dimension N^2 x M): [R1, r2, r3, ..., Rm]
 # ...
+
+def main():
+    pass
+
+
+def load_training_data():
+    pass
+
+
+def compute_mean_face():
+    pass
+
+
+def modify_training_faces(mean_face):
+    pass
