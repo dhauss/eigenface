@@ -25,8 +25,14 @@ def main():
     # Create training face matrix
     A = calculuate_training_face_matrix(TRAINING_FACE_SET)
 
+    V = get_eigenvector_matrix(A)
+
+    U = get_eigenface_matrix(A, V)
+
+    C = get_covariance_matrix(A)
+
     # Debugging
-    print(A.shape)
+    print(C.shape)
 
 
 def calculuate_training_face_matrix(directory):
@@ -74,7 +80,28 @@ def calculuate_training_face_matrix(directory):
         for j in range(IMAGE_WIDTH * IMAGE_HEIGHT):
             column_vectors[i][j] -= m[j]
 
-    return np.array(column_vectors)
+    A = np.matrix(column_vectors)
+    
+    return A.T
+
+def get_eigenvector_matrix(A):
+    L = A.T * A 
+    w, V = np.linalg.eig(L)
+
+    return V
+
+def get_eigenface_matrix(A, V):
+    U = A * V
+
+    return U
+
+
+def get_covariance_matrix(A):
+    C = A * A.T 
+
+    return C
+
+
 
 
 if __name__ == "__main__":
