@@ -9,6 +9,7 @@ import os
 
 # Training image set path
 TRAINING_FACE_SET = "Face dataset/Training/"
+TESTING_FACE_SET = "Face dataset/Testing/"
 # Training image width
 IMAGE_WIDTH = 195
 # training image height
@@ -22,8 +23,8 @@ def main():
     Implement the Eigenface method for face recognition.
     """
 
-    # Create training face matrix
-    A = calculuate_training_face_matrix(TRAINING_FACE_SET)
+    # Create training face matrix, return mean face list 
+    A, m = calculuate_training_face_matrix(TRAINING_FACE_SET)
 
     V = get_eigenvector_matrix(A)
 
@@ -32,15 +33,19 @@ def main():
     #get matrix of eigen coefficients for every training face
     O = get_eigen_coefficient_matrix(A, U)
 
+    I_coefficients = get_input_coefficients(TESTING_FACE_SET + "subject01.normal.jpg", U, m)
+
+    training_face = classify_input_face(I_coefficients, O)
+
     #C = get_covariance_matrix(A)
 
     # Debugging
-    print(O.shape)
+    print(I_coefficients.shape)
 
 
 def calculuate_training_face_matrix(directory):
     """
-    Return a 2D numpy matrix made up of normalized column vector representations of the training images
+    Return a 2D numpy matrix made up of normalized column vector representations of the training images and mean face to normalize input face later
     : param directory: The path of the directory containing the training images
     """
 
@@ -85,7 +90,7 @@ def calculuate_training_face_matrix(directory):
 
     A = np.matrix(column_vectors)
     
-    return A.T
+    return A.T, m
 
 def get_eigenvector_matrix(A):
     L = A.T * A 
@@ -105,9 +110,39 @@ def get_eigen_coefficient_matrix(A, U):
         omegas.append(omega_i)
 
     O = np.array(omegas)
-    
-    return O.T[0]
+    O = np.matrix(O.T[0])
+      
+    return O
 
+def get_input_coefficients(input_face, U, m):
+        img = cv.imread(input_face, 0)
+        # store image shape
+        rows, cols = img.shape
+
+        # Store image pixel values
+        R_i = []
+        for i in range(rows):
+            for j in range(cols):
+                pixel = img[i, j]
+                R_i.append(pixel)
+        
+        #normalize R_i
+        for i in range(len(R_i)):
+            R_i[i] -= m[i]
+
+        R_i = np.array(R_i)
+        omega_R_i = U.T @ R_i
+
+        return omega_R_i.T
+
+def classify_input_face(test_coefficients, training_coefficients_matrix):
+    """
+    returns column vector of training face eigen coefficients
+    : param test_coefficients: eigen coefficients of input face
+    : param training_coefficients_matrix: matrix of eigen coefficients of training faces
+    """
+
+    
 
 def get_covariance_matrix(A):
     C = A * A.T 
