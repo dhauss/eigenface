@@ -29,10 +29,13 @@ def main():
 
     U = get_eigenface_matrix(A, V)
 
-    C = get_covariance_matrix(A)
+    #get matrix of eigen coefficients for every training face
+    O = get_eigen_coefficient_matrix(A, U)
+
+    #C = get_covariance_matrix(A)
 
     # Debugging
-    print(C.shape)
+    print(O.shape)
 
 
 def calculuate_training_face_matrix(directory):
@@ -62,7 +65,7 @@ def calculuate_training_face_matrix(directory):
 
     # Create mean face
     m = []
-    # Initlaize mean face
+    # Initialize mean face
     for i in range(IMAGE_WIDTH * IMAGE_HEIGHT):
         m.append(0)
 
@@ -94,6 +97,16 @@ def get_eigenface_matrix(A, V):
     U = A * V
 
     return U
+
+def get_eigen_coefficient_matrix(A, U):
+    omegas = list()
+    for i in range(0, N_TRAINING_IMAGES):
+        omega_i = U.T * A[:, i]
+        omegas.append(omega_i)
+
+    O = np.array(omegas)
+    
+    return O.T[0]
 
 
 def get_covariance_matrix(A):
