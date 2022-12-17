@@ -35,12 +35,12 @@ def main():
 
     I_coefficients = get_input_coefficients(TESTING_FACE_SET + "subject01.normal.jpg", U, m)
 
-    training_face = classify_input_face(I_coefficients, O)
+    match_coefficients = classify_input_face(I_coefficients, O)
 
-    #C = get_covariance_matrix(A)
+    reconstructed_match = reconstruct_face(match_coefficients, U)
 
     # Debugging
-    print(I_coefficients.shape)
+    #print(reconstructed_match.shape)
 
 
 def calculuate_training_face_matrix(directory):
@@ -55,6 +55,7 @@ def calculuate_training_face_matrix(directory):
     for filename in os.listdir(directory):
         # Create image object
         img = cv.imread(directory + filename, 0)
+        print(filename)
         # store image shape
         rows, cols = img.shape
 
@@ -104,15 +105,13 @@ def get_eigenface_matrix(A, V):
     return U
 
 def get_eigen_coefficient_matrix(A, U):
-    omegas = list()
+    omegas = np.zeros((N_TRAINING_IMAGES, N_TRAINING_IMAGES))
     for i in range(0, N_TRAINING_IMAGES):
         omega_i = U.T * A[:, i]
-        omegas.append(omega_i)
-
-    O = np.array(omegas)
-    O = np.matrix(O.T[0])
+        for j in range(0, N_TRAINING_IMAGES):
+            omegas[i][j] = omega_i[j][0]
       
-    return O
+    return omegas
 
 def get_input_coefficients(input_face, U, m):
         img = cv.imread(input_face, 0)
@@ -142,14 +141,51 @@ def classify_input_face(test_coefficients, training_coefficients_matrix):
     : param training_coefficients_matrix: matrix of eigen coefficients of training faces
     """
 
+    #MDC, max value is minimum distance, full equation: X^TX - (2R^TX - R^TR) where X is test_coefficients, R is candidate class
+    d_max = float('-inf')
+    match = np.zeros((8, 1))
+    for i in range(0, N_TRAINING_IMAGES):
+        #candidate = training_coefficients_matrix[:, i]
+        candidate = np.zeros((8, 1))
+        for j in range(0, N_TRAINING_IMAGES):
+            candidate[j][0] = training_coefficients_matrix[j][i]
+        d = 2 * candidate.T @ test_coefficients - candidate.T @ candidate
+        if d > d_max:
+            d_max = d
+            print(i)
+            for j in range(0, N_TRAINING_IMAGES):
+                match[j][0] = training_coefficients_matrix[j][i]
+
+
+    return match
     
 
-def get_covariance_matrix(A):
-    C = A * A.T 
 
-    return C
+def reconstruct_face(omega, U):
+    """
+    returns reconstructed matrix of pixel values
+    : param omega: vector of eigen coefficients
+    : param U: eigenface matrix from training images
+    """
+    #reconstruct (height by width) x 1 face vector
+    face_column = U * omega
+
+    reconstructed_face = np.zeros((IMAGE_HEIGHT, IMAGE_WIDTH))
+    k = 0
+    for i in range(0, IMAGE_HEIGHT):
+        for j in range(0, IMAGE_WIDTH):
+            reconstructed_face[i][j] = face_column[k, 0]
+            k += 1
+
+    return reconstructed_face
 
 
+def save_face(face):
+    """
+    normalize values and save an output image of reconstructed training face
+    """
+    ...
+    return None
 
 
 if __name__ == "__main__":
