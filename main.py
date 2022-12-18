@@ -21,7 +21,7 @@ N_TRAINING_IMAGES = 8
 def main():
 
     # Create matrix of of normalized training faces and store the mean face
-    A, m = calculuate_training_face_matrix(TRAINING_FACE_SET)
+    A, m, fn = calculuate_training_face_matrix(TRAINING_FACE_SET)
 
     # Create eigenvector matrix
     V = get_eigenvector_matrix(A)
@@ -37,12 +37,12 @@ def main():
         TESTING_FACE_SET + "subject01.normal.jpg", U, m
     )
 
-    match_coefficients = classify_input_face(I_coefficients, O)
+    match_coefficients = classify_input_face(I_coefficients, O, fn)
 
     reconstructed_match = reconstruct_face(match_coefficients, U)
 
     # Debugging
-    # print(reconstructed_match.shape)
+    print(reconstructed_match.shape)
 
 
 def calculuate_training_face_matrix(directory):
@@ -100,7 +100,7 @@ def calculuate_training_face_matrix(directory):
     A = np.matrix(column_vectors)
 
     # Return the vector of training faces and the mean face
-    return A.T, m
+    return A.T, m, fn
 
 
 def get_eigenvector_matrix(A):
@@ -156,7 +156,7 @@ def get_input_coefficients(input_face, U, m):
     return omega_R_i.T
 
 
-def classify_input_face(test_coefficients, training_coefficients_matrix):
+def classify_input_face(test_coefficients, training_coefficients_matrix, filenames):
     """
     returns column vector of training face eigen coefficients
     : param test_coefficients: eigen coefficients of input face
@@ -166,7 +166,7 @@ def classify_input_face(test_coefficients, training_coefficients_matrix):
     # MDC, max value is minimum distance, full equation: X^TX - (2R^TX - R^TR) where X is test_coefficients, R is candidate class
     d_max = float("-inf")
     match = np.zeros((8, 1))
-    for i in range(0, N_TRAINING_IMAGES):
+    for i in range(len(filenames)):
         # candidate = training_coefficients_matrix[:, i]
         candidate = np.zeros((8, 1))
         for j in range(0, N_TRAINING_IMAGES):
@@ -174,7 +174,7 @@ def classify_input_face(test_coefficients, training_coefficients_matrix):
         d = 2 * candidate.T @ test_coefficients - candidate.T @ candidate
         if d > d_max:
             d_max = d
-            print(i)
+            print(filenames[i])
             for j in range(0, N_TRAINING_IMAGES):
                 match[j][0] = training_coefficients_matrix[j][i]
 
