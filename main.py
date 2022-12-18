@@ -1,48 +1,71 @@
-# Used for matrix operations
+#  NumPy is used for the matrix operations it provides
 import numpy as np
 
-# Used for loading images
+# OpenCV is used for processing images
 import cv2 as cv
 
-# Used to navigate directories
+# The OS module is used to iteratively process image files
 import os
 
-# Training image set path
+# Set the path to the training and testing image sets
 TRAINING_FACE_SET = "Face dataset/Training/"
 TESTING_FACE_SET = "Face dataset/Testing/"
-# Training image width
+# Set the dimensions of the image widths and heights
 IMAGE_WIDTH = 195
-# training image height
 IMAGE_HEIGHT = 231
-# Number of Training Images
+# Set the number of training images
 N_TRAINING_IMAGES = 8
 
 
 def main():
+    """
+    Conduct Eigenface training and Eigenface recognition.
 
-    # Create matrix of of normalized training faces and store the mean face
-    A, m = calculuate_training_face_matrix(TRAINING_FACE_SET)
+    Eigenface training:
+        Step 1: Convert M training images into column vectors
+        Step 2: Compute the mean face
+        Step 3: Subtract the mean face from each training face
+        Step 4: Collect the training faces into one matrix
+        Step 5: Find Eigenvalues by taking the the training face matrix, transposing it, and then multiplying it by itself
+        Step 6: Collect the Eigenvectors of the Eigenvalues into a matrix
+        Step 7: Collect the M largest Eigenvectors of the coverance matrix
+        Step 8: Project each training face onto the face space to obtain its eigenface coefficients
 
-    # Create eigenvector matrix
+    Eigenface Recogntion:
+        Step 1: Subtrtact the mean face m from the input face
+        Step 2: Compute the projection of the input face onto the face space to obtrain its eigenface coefficients
+        Step 3: Reconstruct the input face image from eigenfaces
+        Step 4: Compute the distance between the input face image and its reconstruction
+        Step 5: Compute the distance between the input face and the training images in the face space (distance between eigenface coefficients)
+        Step 6: The input face corresponds with the training face whose distance to the input face in face space is minimal
+    """
+
+    # Eigneface Training
+
+    # Compute the meanface and Create the matrix of training face vectors
+    A, m, fn = calculuate_training_face_matrix(TRAINING_FACE_SET)
+    # Create a matrix that contains the M largest Eigenvalues
     V = get_eigenvector_matrix(A)
-
-    # Capture the M largest eigenvectors of the covariance matrix
+    # Compute the M largest Eigenvectors of the covariance matrix
     U = get_eigenface_matrix(A, V)
-
-    # get matrix of eigen coefficients for every training face
+    # Compute the Eigenface coeffcients of the training images by projecting the training image column vectors onto face space
     O = get_eigen_coefficient_matrix(A, U)
 
+    # Eigenface Recognition
+    # Collect the filename of the input image from the user
+    input_image_filename = input_image()
     # Calculate eigenface coefficients of an input face
     I_coefficients = get_input_coefficients(
-        TESTING_FACE_SET + "subject01.normal.jpg", U, m
+        TESTING_FACE_SET + input_image_filename, U, m
     )
 
-    match_coefficients = classify_input_face(I_coefficients, O)
+    # Perform the 1-NN based matching
+    match_coefficients = classify_input_face(I_coefficients, O, fn)
 
     reconstructed_match = reconstruct_face(match_coefficients, U)
 
     # Debugging
-    # print(reconstructed_match.shape)
+    print(reconstructed_match.shape)
 
 
 def calculuate_training_face_matrix(directory):
@@ -100,7 +123,7 @@ def calculuate_training_face_matrix(directory):
     A = np.matrix(column_vectors)
 
     # Return the vector of training faces and the mean face
-    return A.T, m
+    return A.T, m, fn
 
 
 def get_eigenvector_matrix(A):
@@ -108,33 +131,55 @@ def get_eigenvector_matrix(A):
     Return the eigenvectors of the training faces
     :param A: The matrix of training faces
     """
+    # Find the M largest eigenvalues
     L = A.T * A
+    # Store the M largest eigen values into one matrix
     w, V = np.linalg.eig(L)
 
+    # Return the matrix that contains the M largest eigenvalues
     return V
 
 
 def get_eigenface_matrix(A, V):
-    U = A * V
+    """
+    Return the M largest Eigen vectors of the coveriance matrix.
+    : param A: The matrix of training faces
+    : param V: The matrix of the M largest Eigenvalues
+    """
 
-    return U
+    return A * V
 
 
 def get_eigen_coefficient_matrix(A, U):
     """
     Project training faces onto face space to obtain their eigenface coefficients.
+    : param A: The matrix of training faces
+    : param U: The matrix of the M largest Eigenvectors
     """
-
+    # Initialize a matrix to store the eigenface coefficients
     omegas = np.zeros((N_TRAINING_IMAGES, N_TRAINING_IMAGES))
+
+    # For every training face
     for i in range(0, N_TRAINING_IMAGES):
+        # Project the training face onto face space
         omega_i = U.T * A[:, i]
+        # Store the eigencoefficient in a matrix
         for j in range(0, N_TRAINING_IMAGES):
             omegas[i][j] = omega_i[j][0]
 
+    # Return a matrix of training Eigenface coefficients
     return omegas
 
 
 def get_input_coefficients(input_face, U, m):
+    """
+    Compute the Eigenface coefficients of an input face.
+    : param input_face: The filename of the input face.
+    : param U: The M larges Eigenvactors of the covariance matrix.
+    : param m" The mean face.
+    """
+
+    # Load the input face file into an image object
     img = cv.imread(input_face, 0)
     # store image shape
     rows, cols = img.shape
@@ -146,66 +191,85 @@ def get_input_coefficients(input_face, U, m):
             pixel = img[i, j]
             R_i.append(pixel)
 
-    # normalize R_i
+    # normalize the input face column vector
     for i in range(len(R_i)):
         R_i[i] -= m[i]
 
+    # Compute the input face Eigen coefficients
     R_i = np.array(R_i)
     omega_R_i = U.T @ R_i
 
+    # Return the inputface Eigen coeffcients
     return omega_R_i.T
 
 
-def classify_input_face(test_coefficients, training_coefficients_matrix):
+def classify_input_face(test_coefficients, training_coefficients_matrix, filenames):
     """
-    returns column vector of training face eigen coefficients
-    : param test_coefficients: eigen coefficients of input face
-    : param training_coefficients_matrix: matrix of eigen coefficients of training faces
+    Returns the eigenface coefficients of the training face that is matched to the input face
+    : param test_coefficients: eigen coefficients of the input face
+    : param training_coefficients_matrix: matrix of eigen coefficients of the training faces
     """
 
     # MDC, max value is minimum distance, full equation: X^TX - (2R^TX - R^TR) where X is test_coefficients, R is candidate class
+    # Initialize max distance
     d_max = float("-inf")
+    # Initialize the eigenface coefficients of the matched training face
     match = np.zeros((8, 1))
-    for i in range(0, N_TRAINING_IMAGES):
-        # candidate = training_coefficients_matrix[:, i]
+    # Iterate through all of the trainingface coefficients
+    for i in range(len(filenames)):
+        # Initialize a candidate set of Eigenface coefficients
         candidate = np.zeros((8, 1))
+        # Iterate through the Eigen coefficients
         for j in range(0, N_TRAINING_IMAGES):
             candidate[j][0] = training_coefficients_matrix[j][i]
+        # Calculate the dsitance beween the input face iand its training face
         d = 2 * candidate.T @ test_coefficients - candidate.T @ candidate
+        # Identify the input face's corresponding training face
         if d > d_max:
             d_max = d
-            print(i)
+            print(filenames[i])
             for j in range(0, N_TRAINING_IMAGES):
                 match[j][0] = training_coefficients_matrix[j][i]
 
+    # Return the eigenface coefficients of the training face
     return match
 
 
 def reconstruct_face(omega, U):
     """
-    returns reconstructed matrix of pixel values
+    Returns reconstructed matrix of pixel values
     : param omega: vector of eigen coefficients
     : param U: eigenface matrix from training images
     """
-    # reconstruct (height by width) x 1 face vector
+    # Reconstruct (height by width) x 1 face vector
     face_column = U * omega
 
+    # Initialize pixel value matrix
     reconstructed_face = np.zeros((IMAGE_HEIGHT, IMAGE_WIDTH))
     k = 0
+    # Populate pixel value matrix
     for i in range(0, IMAGE_HEIGHT):
         for j in range(0, IMAGE_WIDTH):
             reconstructed_face[i][j] = face_column[k, 0]
             k += 1
 
+    # Return the matrix containing the pixel values
     return reconstructed_face
 
 
 def save_face(face):
     """
-    normalize values and save an output image of reconstructed training face
+    Normalize values and save an output image of reconstructed training face
     """
     ...
     return None
+
+
+def input_image():
+    """
+    Collect the name of the file that contains the input face from the user.
+    """
+    return input("Enter the input face filename: ")
 
 
 if __name__ == "__main__":
