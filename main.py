@@ -62,10 +62,10 @@ def main():
     # Perform the 1-NN based matching
     match_coefficients = classify_input_face(I_coefficients, O, fn)
 
-    reconstructed_match = reconstruct_face(match_coefficients, U)
+    #reconstructed_match = reconstruct_face(match_coefficients, U)
 
     # Debugging
-    print(reconstructed_match.shape)
+    #print(I_coefficients)
 
 
 def calculuate_training_face_matrix(directory):
@@ -73,7 +73,6 @@ def calculuate_training_face_matrix(directory):
     Return a 2D numpy matrix made up of normalized column vector representations of the training images and the mean face
     : param directory: The path of the directory containing the training images
     """
-
     # Store filenames
     fn = []
     # Store column vectors
@@ -90,8 +89,8 @@ def calculuate_training_face_matrix(directory):
 
         # Create a list of pixel values
         pixel_values = []
-        for i in range(rows):
-            for j in range(cols):
+        for j in range(cols):
+            for i in range(rows):
                 pixel = img[i, j]
                 # Append each pixel value to the list of pixel values
                 pixel_values.append(pixel)
@@ -120,7 +119,7 @@ def calculuate_training_face_matrix(directory):
             column_vectors[i][j] -= m[j]
 
     # Create the matrix of training faces
-    A = np.matrix(column_vectors)
+    A = np.array(column_vectors)
 
     # Return the vector of training faces and the mean face
     return A.T, m, fn
@@ -132,7 +131,7 @@ def get_eigenvector_matrix(A):
     :param A: The matrix of training faces
     """
     # Find the M largest eigenvalues
-    L = A.T * A
+    L = A.T @ A
     # Store the M largest eigen values into one matrix
     w, V = np.linalg.eig(L)
 
@@ -147,7 +146,7 @@ def get_eigenface_matrix(A, V):
     : param V: The matrix of the M largest Eigenvalues
     """
 
-    return A * V
+    return A @ V
 
 
 def get_eigen_coefficient_matrix(A, U):
@@ -156,16 +155,9 @@ def get_eigen_coefficient_matrix(A, U):
     : param A: The matrix of training faces
     : param U: The matrix of the M largest Eigenvectors
     """
-    # Initialize a matrix to store the eigenface coefficients
-    omegas = np.zeros((N_TRAINING_IMAGES, N_TRAINING_IMAGES))
 
-    # For every training face
-    for i in range(0, N_TRAINING_IMAGES):
-        # Project the training face onto face space
-        omega_i = U.T * A[:, i]
-        # Store the eigencoefficient in a matrix
-        for j in range(0, N_TRAINING_IMAGES):
-            omegas[i][j] = omega_i[j][0]
+    #Find eigen coefficients of all training images
+    omegas = U.T @ A
 
     # Return a matrix of training Eigenface coefficients
     return omegas
@@ -186,8 +178,8 @@ def get_input_coefficients(input_face, U, m):
 
     # Store image pixel values
     R_i = []
-    for i in range(rows):
-        for j in range(cols):
+    for j in range(cols):
+        for i in range(rows):
             pixel = img[i, j]
             R_i.append(pixel)
 
@@ -242,7 +234,7 @@ def reconstruct_face(omega, U):
     : param U: eigenface matrix from training images
     """
     # Reconstruct (height by width) x 1 face vector
-    face_column = U * omega
+    face_column = U @ omega
 
     # Initialize pixel value matrix
     reconstructed_face = np.zeros((IMAGE_HEIGHT, IMAGE_WIDTH))
