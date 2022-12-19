@@ -32,7 +32,7 @@ def main():
         Step 8: Project each training face onto the face space to obtain its eigenface coefficients
 
     Eigenface Recogntion:
-        Step 1: Subtrtact the mean face m from the input face
+        Step 1: Subtract the mean face m from the input face
         Step 2: Compute the projection of the input face onto the face space to obtrain its eigenface coefficients
         Step 3: Reconstruct the input face image from eigenfaces
         Step 4: Compute the distance between the input face image and its reconstruction
@@ -207,6 +207,7 @@ def classify_input_face(test_coefficients, training_coefficients_matrix, filenam
     d_max = float("-inf")
     # Initialize the eigenface coefficients of the matched training face
     match = np.zeros((8, 1))
+    index = -1;
     # Iterate through all of the trainingface coefficients
     for i in range(len(filenames)):
         # Initialize a candidate set of Eigenface coefficients
@@ -219,11 +220,12 @@ def classify_input_face(test_coefficients, training_coefficients_matrix, filenam
         # Identify the input face's corresponding training face
         if d > d_max:
             d_max = d
-            print(filenames[i])
+            index = i
             for j in range(0, N_TRAINING_IMAGES):
                 match[j][0] = training_coefficients_matrix[j][i]
 
     # Return the eigenface coefficients of the training face
+    print(filenames[index])
     return match
 
 
