@@ -62,11 +62,10 @@ def main():
     # Perform the 1-NN based matching
     match_coefficients = classify_input_face(I_coefficients, O, fn)
 
-    #save eigenface images
+    # save eigenface images
     save_eigen_faces(U, fn)
-    #save mean face image
+    # save mean face image
     save_mean_face(m)
-
 
 
 def calculuate_training_face_matrix(directory):
@@ -157,7 +156,7 @@ def get_eigen_coefficient_matrix(A, U):
     : param U: The matrix of the M largest Eigenvectors
     """
 
-    #Find eigen coefficients of all training images
+    # Find eigen coefficients of all training images
     omegas = U.T @ A
 
     # Return a matrix of training Eigenface coefficients
@@ -208,7 +207,7 @@ def classify_input_face(test_coefficients, training_coefficients_matrix, filenam
     d_max = float("-inf")
     # Initialize the eigenface coefficients of the matched training face
     match = np.zeros((8, 1))
-    index = -1;
+    index = -1
     # Iterate through all of the trainingface coefficients
     for i in range(len(filenames)):
         # Initialize a candidate set of Eigenface coefficients
@@ -259,12 +258,12 @@ def save_eigen_faces(in_faces, fn):
     : param fn: dict of filenames indexed to training faces
     """
 
-    #cycle through each face column
+    # cycle through each face column
     for n in range(N_TRAINING_IMAGES):
-        #find min, max for normalization and convert to IMAGE_HEIGHT x IMAGE_WIDTH sized np array
+        # find min, max for normalization and convert to IMAGE_HEIGHT x IMAGE_WIDTH sized np array
         k = 0
-        max_pixel = float('-inf')
-        min_pixel = float('inf')
+        max_pixel = float("-inf")
+        min_pixel = float("inf")
         out_face = np.zeros((IMAGE_HEIGHT, IMAGE_WIDTH))
         for j in range(IMAGE_WIDTH):
             for i in range(IMAGE_HEIGHT):
@@ -274,12 +273,14 @@ def save_eigen_faces(in_faces, fn):
                     min_pixel = out_face[i][j]
                 if out_face[i][j] > max_pixel:
                     max_pixel = out_face[i][j]
-        
-        #normalize values from 0-255
+
+        # normalize values from 0-255
         for i in range(IMAGE_HEIGHT):
             for j in range(IMAGE_WIDTH):
-                out_face[i][j] = int((out_face[i][j] - min_pixel) * 255/(max_pixel - min_pixel))
-        
+                out_face[i][j] = int(
+                    (out_face[i][j] - min_pixel) * 255 / (max_pixel - min_pixel)
+                )
+
         out_file = "Eigenfaces/" + fn[n][:-4] + ".eigen-out" + ".jpg"
         cv.imwrite(out_file, out_face)
 
@@ -290,8 +291,8 @@ def save_mean_face(m):
     : param m : list of mean values
     """
     k = 0
-    max_pixel = float('-inf')
-    min_pixel = float('inf')
+    max_pixel = float("-inf")
+    min_pixel = float("inf")
     out_face = np.zeros((IMAGE_HEIGHT, IMAGE_WIDTH))
     for j in range(IMAGE_WIDTH):
         for i in range(IMAGE_HEIGHT):
@@ -300,14 +301,17 @@ def save_mean_face(m):
             if out_face[i][j] < min_pixel:
                 min_pixel = out_face[i][j]
             if out_face[i][j] > max_pixel:
-                 max_pixel = out_face[i][j]
+                max_pixel = out_face[i][j]
 
-            #normalize values from 0-255
+            # normalize values from 0-255
     for i in range(IMAGE_HEIGHT):
         for j in range(IMAGE_WIDTH):
-            out_face[i][j] = int((out_face[i][j] - min_pixel) * 255/(max_pixel - min_pixel))
+            out_face[i][j] = int(
+                (out_face[i][j] - min_pixel) * 255 / (max_pixel - min_pixel)
+            )
 
     cv.imwrite("meanface-out.jpg", out_face)
+
 
 def input_image():
     """
